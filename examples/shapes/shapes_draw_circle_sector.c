@@ -28,9 +28,10 @@ int main(void)
     Vector2 center = {(GetScreenWidth() - 300)/2, GetScreenHeight()/2 };
 
     float outerRadius = 180.0f;
-    int startAngle = 0;
-    int endAngle = 180;
+    float startAngle = 0.0f;
+    float endAngle = 180.0f;
     int segments = 0;
+    int minSegments = 4;
 
     SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -64,7 +65,8 @@ int main(void)
             segments = GuiSliderBar((Rectangle){ 600, 170, 120, 20}, "Segments", NULL, segments, 0, 100);
             //------------------------------------------------------------------------------
             
-            DrawText(TextFormat("MODE: %s", (segments >= 4)? "MANUAL" : "AUTO"), 600, 200, 10, (segments >= 4)? MAROON : DARKGRAY);
+            minSegments = (int)ceilf((endAngle - startAngle) / 90);
+            DrawText(TextFormat("MODE: %s", (segments >= minSegments)? "MANUAL" : "AUTO"), 600, 200, 10, (segments >= minSegments)? MAROON : DARKGRAY);
             
             DrawFPS(10, 10);
             
