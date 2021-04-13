@@ -25,7 +25,7 @@
 *
 **********************************************************************************************/
 
-#define RAYLIB_VERSION  "3.5"
+#define RAYLIB_VERSION  "3.7"
 
 //------------------------------------------------------------------------------------
 // Module: core - Configuration Flags
@@ -40,6 +40,9 @@
 #define SUPPORT_SSH_KEYBOARD_RPI    1
 // Draw a mouse pointer on screen
 #define SUPPORT_MOUSE_CURSOR_NATIVE 1
+// Setting a higher resolution can improve the accuracy of time-out intervals in wait functions.
+// However, it can also reduce overall system performance, because the thread scheduler switches tasks more often.
+#define SUPPORT_WINMM_HIGHRES_TIMER 1
 // Use busy wait loop for timing sync, if not defined, a high-resolution timer is setup and used
 //#define SUPPORT_BUSY_WAIT_LOOP      1
 // Use a half-busy wait loop, in this case frame sleeps for some time and runs a busy-wait-loop at the end
@@ -75,12 +78,7 @@
 
 
 //------------------------------------------------------------------------------------
-// Module: rlgl - Configuration Flags
-//------------------------------------------------------------------------------------
-// Support VR simulation functionality (stereo rendering)
-#define SUPPORT_VR_SIMULATOR        1
-
-// rlgl: Configuration values
+// Module: rlgl - Configuration values
 //------------------------------------------------------------------------------------
 #if defined(GRAPHICS_API_OPENGL_11) || defined(GRAPHICS_API_OPENGL_33)
     #define DEFAULT_BATCH_BUFFER_ELEMENTS   8192    // Default internal render batch limits
@@ -111,9 +109,6 @@
 //------------------------------------------------------------------------------------
 // Module: shapes - Configuration Flags
 //------------------------------------------------------------------------------------
-// Draw rectangle shapes using font texture white character instead of default white texture
-// Allows drawing rectangles and text with a single draw call, very useful for GUI systems!
-#define SUPPORT_FONT_TEXTURE        1
 // Use QUADS instead of TRIANGLES for drawing when possible
 // Some lines-based shapes could still use lines
 #define SUPPORT_QUADS_DRAW_MODE     1
@@ -195,9 +190,8 @@
 //------------------------------------------------------------------------------------
 #define AUDIO_DEVICE_FORMAT    ma_format_f32    // Device output format (miniaudio: float-32bit)
 #define AUDIO_DEVICE_CHANNELS              2    // Device output channels: stereo
-#define AUDIO_DEVICE_SAMPLE_RATE       44100    // Device output sample rate
+#define AUDIO_DEVICE_SAMPLE_RATE           0    // Device sample rate (device default)
 
-#define DEFAULT_AUDIO_BUFFER_SIZE       4096    // Default audio buffer size for streaming
 #define MAX_AUDIO_BUFFER_POOL_CHANNELS    16    // Maximum number of audio pool channels
 
 //------------------------------------------------------------------------------------

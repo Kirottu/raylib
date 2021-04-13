@@ -249,7 +249,7 @@ After **10 months of intense development**, new raylib version is ready. Despite
 
  - New **GitHub Actions CI** system has been implemented for Windows, Linux and macOS code and examples compilation on every new commit or PR to make sure library keeps stable and usable with no breaking bugs.
 
-Note that only key changes are listed here but there is way more! About **30 new functions**, multiple functions reviewed, bindings to [+40 programming languages](https://github.com/raysan5/raylib/blob/master/BINDINGS.md) and great samples/demos/tutorials [created by the community](https://discord.gg/VkzNHUE), including raylib integration with [Spine](https://github.com/WEREMSOFT/spine-raylib-runtimes), [Unity](https://unitycoder.com/blog/2019/12/09/using-raylib-dll-in-unity/), [Tiled](https://github.com/OnACoffeeBreak/raylib_tiled_import_with_tmx), [Nuklear](http://bedroomcoders.co.uk/implementing-a-3d-gui-with-raylib/), [enet](https://github.com/nxrighthere/NetDynamics) and [more](https://github.com/raysan5/raylib/issues/1079)!
+Note that only key changes are listed here but there is way more! About **30 new functions**, multiple functions reviewed, bindings to [+40 programming languages](https://github.com/raysan5/raylib/blob/master/BINDINGS.md) and great samples/demos/tutorials [created by the community](https://discord.gg/raylib), including raylib integration with [Spine](https://github.com/WEREMSOFT/spine-raylib-runtimes), [Unity](https://unitycoder.com/blog/2019/12/09/using-raylib-dll-in-unity/), [Tiled](https://github.com/OnACoffeeBreak/raylib_tiled_import_with_tmx), [Nuklear](http://bedroomcoders.co.uk/implementing-a-3d-gui-with-raylib/), [enet](https://github.com/nxrighthere/NetDynamics) and [more](https://github.com/raysan5/raylib/issues/1079)!
 
 It has been **10 months of improvements** to create the best raylib ever.
 
@@ -291,3 +291,34 @@ Here the list with some highlights for `raylib 3.5`.
 A part of those changes, many new functions have been added, some redundant functions removed and many functions have been reviewed for consistency with the full API (function name, parameters name and order, code formatting...). Again, this release represents is a **great improvement for raylib and marks the way forward** for the library. Make sure to check [CHANGELOG](CHANGELOG) for details! Hope you enjoy it!
 
 Happy holidays! :)
+
+notes on raylib 3.7
+-------------------
+
+April 2021, it's been about 4 months since last raylib release and here it is already a new one, this time with a bunch of internal redesigns and improvements. Surprisingly, on April the 8th I was awarded for a second time with the [Google Open Source Peer Bonus Award](https://opensource.googleblog.com/2021/04/announcing-first-group-of-google-open-source-peer-bonus-winners.html) for my contribution to open source world with raylib and it seems the library is getting some traction, what a better moment for a new release? Let's see what can be found in this new version:
+
+Let's start with some numbers:
+
+ - **+100** closed issues (for a TOTAL of **+900**!)
+ - **+350** commits since previous RELEASE
+ - **+50** functions ADDED (**+30** of them to rlgl API)
+ - **+30** functions REVIEWED/REDESIGNED
+ - **+30** new contributors (for a TOTAL of **+200**!)
+ 
+Highlights for `raylib 3.7`:
+
+ - REDESIGNED `rlgl` module for a greater abstraction level. Mesh and Materials structs references have been moved to a higher level, to `models` module as well as `DrawMesh()` and `DrawMeshInstanced()` functions. Some shaders functionality has also been moved to a higher level, to `core` module. Several `rlgl` functions names have been reviewed for consistency, following the `rl*()` prefix convention. Reorganized all functions by categories. GenTexture*() functions removal. Reiewed instancing and stereo rendering.
+ 
+ - REDESIGNED VR simulator along with stereo rendering mechanism, a new API has been added more comprehensive and better integrated with raylib, now stereo rendering can be combined with `RenderTexture` and `Shader` API allowing the user manage fbo and distortion shader directly.
+ 
+ - ADDED file access callbacks system
+ 
+ - ADDED: glTF animations support (#1551) by @object71
+ 
+ - ADDED: Music streaming support from memory (#1606) by @nezvers
+ 
+ - RENAMED: enums values renamed for consistency
+ 
+Beside those key changes, many functions have been reviewed with improvements and bug fixes, many of them contributed by the community! Again, this release represents is a **great improvement for raylib and marks the way forward** for the library. Make sure to check [CHANGELOG](CHANGELOG) for detailed list of changes! Hope you enjoy this new raylib installment!
+
+Happy gamedev/tools/graphics programming! :)
