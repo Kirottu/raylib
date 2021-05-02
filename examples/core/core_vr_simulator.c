@@ -2,7 +2,7 @@
 *
 *   raylib [core] example - VR Simulator (Oculus Rift CV1 parameters)
 *
-*   This example has been created using raylib 3.6-dev (www.raylib.com)
+*   This example has been created using raylib 3.7 (www.raylib.com)
 *   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
 *
 *   Copyright (c) 2017-2021 Ramon Santamaria (@raysan5)
@@ -38,9 +38,9 @@ int main(void)
         .eyeToScreenDistance = 0.041f,       // Distance between eye and display in meters
         .lensSeparationDistance = 0.07f,     // Lens separation distance in meters
         .interpupillaryDistance = 0.07f,     // IPD (distance between pupils) in meters
-    
-        // NOTE: CV1 uses a Fresnel-hybrid-asymmetric lenses with specific distortion compute shaders
-        // Following parameters are an approximation to distortion stereo rendering but results differ from actual device
+
+        // NOTE: CV1 uses fresnel-hybrid-asymmetric lenses with specific compute shaders
+        // Following parameters are just an approximation to CV1 distortion stereo rendering
         .lensDistortionValues[0] = 1.0f,     // Lens distortion constant parameter 0
         .lensDistortionValues[1] = 0.22f,    // Lens distortion constant parameter 1
         .lensDistortionValues[2] = 0.24f,    // Lens distortion constant parameter 2
@@ -50,24 +50,32 @@ int main(void)
         .chromaAbCorrection[2] = 1.014f,     // Chromatic aberration correction parameter 2
         .chromaAbCorrection[3] = 0.0f,       // Chromatic aberration correction parameter 3
     };
-    
+
     // Load VR stereo config for VR device parameteres (Oculus Rift CV1 parameters)
     VrStereoConfig config = LoadVrStereoConfig(device);
 
     // Distortion shader (uses device lens distortion and chroma)
     Shader distortion = LoadShader(0, TextFormat("resources/distortion%i.fs", GLSL_VERSION));
-    
-    // Update distortion shader with lens and distortion-scale parameters
-    SetShaderValue(distortion, GetShaderLocation(distortion, "leftLensCenter"), config.leftLensCenter, SHADER_UNIFORM_VEC2);
-    SetShaderValue(distortion, GetShaderLocation(distortion, "rightLensCenter"), config.rightLensCenter, SHADER_UNIFORM_VEC2);
-    SetShaderValue(distortion, GetShaderLocation(distortion, "leftScreenCenter"), config.leftScreenCenter, SHADER_UNIFORM_VEC2);
-    SetShaderValue(distortion, GetShaderLocation(distortion, "rightScreenCenter"), config.rightScreenCenter, SHADER_UNIFORM_VEC2);
 
-    SetShaderValue(distortion, GetShaderLocation(distortion, "scale"), config.scale, SHADER_UNIFORM_VEC2);
-    SetShaderValue(distortion, GetShaderLocation(distortion, "scaleIn"), config.scaleIn, SHADER_UNIFORM_VEC2);
-    SetShaderValue(distortion, GetShaderLocation(distortion, "deviceWarpParam"), device.lensDistortionValues, SHADER_UNIFORM_VEC4);
-    SetShaderValue(distortion, GetShaderLocation(distortion, "chromaAbParam"), device.chromaAbCorrection, SHADER_UNIFORM_VEC4);
-    
+    // Update distortion shader with lens and distortion-scale parameters
+    SetShaderValue(distortion, GetShaderLocation(distortion, "leftLensCenter"),
+                   config.leftLensCenter, SHADER_UNIFORM_VEC2);
+    SetShaderValue(distortion, GetShaderLocation(distortion, "rightLensCenter"),
+                   config.rightLensCenter, SHADER_UNIFORM_VEC2);
+    SetShaderValue(distortion, GetShaderLocation(distortion, "leftScreenCenter"),
+                   config.leftScreenCenter, SHADER_UNIFORM_VEC2);
+    SetShaderValue(distortion, GetShaderLocation(distortion, "rightScreenCenter"),
+                   config.rightScreenCenter, SHADER_UNIFORM_VEC2);
+
+    SetShaderValue(distortion, GetShaderLocation(distortion, "scale"),
+                   config.scale, SHADER_UNIFORM_VEC2);
+    SetShaderValue(distortion, GetShaderLocation(distortion, "scaleIn"),
+                   config.scaleIn, SHADER_UNIFORM_VEC2);
+    SetShaderValue(distortion, GetShaderLocation(distortion, "deviceWarpParam"),
+                   device.lensDistortionValues, SHADER_UNIFORM_VEC4);
+    SetShaderValue(distortion, GetShaderLocation(distortion, "chromaAbParam"),
+                   device.chromaAbCorrection, SHADER_UNIFORM_VEC4);
+
     // Initialize framebuffer for stereo rendering
     // NOTE: Screen size should match HMD aspect ratio
     RenderTexture2D target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
@@ -76,9 +84,9 @@ int main(void)
     Camera camera = { 0 };
     camera.position = (Vector3){ 5.0f, 2.0f, 5.0f };    // Camera position
     camera.target = (Vector3){ 0.0f, 2.0f, 0.0f };      // Camera looking at point
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
+    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector
     camera.fovy = 60.0f;                                // Camera field-of-view Y
-    camera.projection = CAMERA_PERSPECTIVE;                   // Camera type
+    camera.projection = CAMERA_PERSPECTIVE;             // Camera type
 
     Vector3 cubePosition = { 0.0f, 0.0f, 0.0f };
 
@@ -108,15 +116,15 @@ int main(void)
 
                         DrawCube(cubePosition, 2.0f, 2.0f, 2.0f, RED);
                         DrawCubeWires(cubePosition, 2.0f, 2.0f, 2.0f, MAROON);
-
                         DrawGrid(40, 1.0f);
 
                     EndMode3D();
                 EndVrStereoMode();
             EndTextureMode();
-            
+
             BeginShaderMode(distortion);
-               DrawTextureRec(target.texture, (Rectangle){ 0, 0, (float)target.texture.width, (float)-target.texture.height }, (Vector2){ 0.0f, 0.0f }, WHITE);
+                DrawTextureRec(target.texture, (Rectangle){ 0, 0, (float)target.texture.width,
+                              (float)-target.texture.height }, (Vector2){ 0.0f, 0.0f }, WHITE);
             EndShaderMode();
 
             DrawFPS(10, 10);
@@ -128,7 +136,7 @@ int main(void)
     // De-Initialization
     //--------------------------------------------------------------------------------------
     UnloadVrStereoConfig(config);   // Unload stereo config
-    
+
     UnloadRenderTexture(target);    // Unload stereo render fbo
     UnloadShader(distortion);       // Unload distortion shader
 

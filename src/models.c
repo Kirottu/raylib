@@ -131,7 +131,10 @@ static void InitGLTFBones(Model* model, const cgltf_data* data);
 // Draw a line in 3D world space
 void DrawLine3D(Vector3 startPos, Vector3 endPos, Color color)
 {
-    rlCheckRenderBatchLimit(2);
+    // WARNING: Be careful with internal buffer vertex alignment
+    // when using RL_LINES or RL_TRIANGLES, data is aligned to fit
+    // lines-triangles-quads in the same indexed buffers!!!
+    rlCheckRenderBatchLimit(8);
 
     rlBegin(RL_LINES);
         rlColor4ub(color.r, color.g, color.b, color.a);
@@ -143,7 +146,7 @@ void DrawLine3D(Vector3 startPos, Vector3 endPos, Color color)
 // Draw a point in 3D space, actually a small line
 void DrawPoint3D(Vector3 position, Color color)
 {
-    rlCheckRenderBatchLimit(2);
+    rlCheckRenderBatchLimit(8);
 
     rlPushMatrix();
         rlTranslatef(position.x, position.y, position.z);
@@ -826,13 +829,13 @@ void UploadMesh(Mesh *mesh, bool dynamic)
     mesh->vboId = (unsigned int *)RL_CALLOC(MAX_MESH_VERTEX_BUFFERS, sizeof(unsigned int));
 
     mesh->vaoId = 0;        // Vertex Array Object
-    mesh->vboId[0] = 0;     // Vertex positions VBO
-    mesh->vboId[1] = 0;     // Vertex texcoords VBO
-    mesh->vboId[2] = 0;     // Vertex normals VBO
-    mesh->vboId[3] = 0;     // Vertex colors VBO
-    mesh->vboId[4] = 0;     // Vertex tangents VBO
-    mesh->vboId[5] = 0;     // Vertex texcoords2 VBO
-    mesh->vboId[6] = 0;     // Vertex indices VBO
+    mesh->vboId[0] = 0;     // Vertex buffer: positions
+    mesh->vboId[1] = 0;     // Vertex buffer: texcoords
+    mesh->vboId[2] = 0;     // Vertex buffer: normals
+    mesh->vboId[3] = 0;     // Vertex buffer: colors
+    mesh->vboId[4] = 0;     // Vertex buffer: tangents
+    mesh->vboId[5] = 0;     // Vertex buffer: texcoords2
+    mesh->vboId[6] = 0;     // Vertex buffer: indices
 
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     mesh->vaoId = rlLoadVertexArray();
@@ -920,6 +923,12 @@ void UploadMesh(Mesh *mesh, bool dynamic)
 
     rlDisableVertexArray();
 #endif
+}
+
+// Update mesh vertex data in GPU for a specific buffer index
+void UpdateMeshBuffer(Mesh mesh, int index, void *data, int dataSize, int offset)
+{
+    rlUpdateVertexBuffer(mesh.vboId[index], data, dataSize, offset);
 }
 
 // Draw a 3d mesh with material and transform
@@ -1422,41 +1431,53 @@ void UpdateModelAnimation(Model model, ModelAnimation anim, int frame)
             int vCounter = 0;
             int boneCounter = 0;
             int boneId = 0;
+            float boneWeight = 0.0;
 
             for (int i = 0; i < model.meshes[m].vertexCount; i++)
             {
-                boneId = model.meshes[m].boneIds[boneCounter];
-                inTranslation = model.bindPose[boneId].translation;
-                inRotation = model.bindPose[boneId].rotation;
-                //inScale = model.bindPose[boneId].scale;
-                outTranslation = anim.framePoses[frame][boneId].translation;
-                outRotation = anim.framePoses[frame][boneId].rotation;
-                outScale = anim.framePoses[frame][boneId].scale;
+                model.meshes[m].animVertices[vCounter]     = 0;
+                model.meshes[m].animVertices[vCounter + 1] = 0;
+                model.meshes[m].animVertices[vCounter + 2] = 0;
 
-                // Vertices processing
-                // NOTE: We use meshes.vertices (default vertex position) to calculate meshes.animVertices (animated vertex position)
-                animVertex = (Vector3){ model.meshes[m].vertices[vCounter], model.meshes[m].vertices[vCounter + 1], model.meshes[m].vertices[vCounter + 2] };
-                animVertex = Vector3Multiply(animVertex, outScale);
-                animVertex = Vector3Subtract(animVertex, inTranslation);
-                animVertex = Vector3RotateByQuaternion(animVertex, QuaternionMultiply(outRotation, QuaternionInvert(inRotation)));
-                animVertex = Vector3Add(animVertex, outTranslation);
-                model.meshes[m].animVertices[vCounter] = animVertex.x;
-                model.meshes[m].animVertices[vCounter + 1] = animVertex.y;
-                model.meshes[m].animVertices[vCounter + 2] = animVertex.z;
+                model.meshes[m].animNormals[vCounter]     = 0;
+                model.meshes[m].animNormals[vCounter + 1] = 0;
+                model.meshes[m].animNormals[vCounter + 2] = 0;
 
-                // Normals processing
-                // NOTE: We use meshes.baseNormals (default normal) to calculate meshes.normals (animated normals)
-                if (model.meshes[m].normals != NULL)
+                for (int j = 0; j < 4; j++)
                 {
-                    animNormal = (Vector3){ model.meshes[m].normals[vCounter], model.meshes[m].normals[vCounter + 1], model.meshes[m].normals[vCounter + 2] };
-                    animNormal = Vector3RotateByQuaternion(animNormal, QuaternionMultiply(outRotation, QuaternionInvert(inRotation)));
-                    model.meshes[m].animNormals[vCounter] = animNormal.x;
-                    model.meshes[m].animNormals[vCounter + 1] = animNormal.y;
-                    model.meshes[m].animNormals[vCounter + 2] = animNormal.z;
-                }
+                    boneId = model.meshes[m].boneIds[boneCounter];
+                    boneWeight = model.meshes[m].boneWeights[boneCounter];
+                    inTranslation = model.bindPose[boneId].translation;
+                    inRotation = model.bindPose[boneId].rotation;
+                    //inScale = model.bindPose[boneId].scale;
+                    outTranslation = anim.framePoses[frame][boneId].translation;
+                    outRotation = anim.framePoses[frame][boneId].rotation;
+                    outScale = anim.framePoses[frame][boneId].scale;
 
+                    // Vertices processing
+                    // NOTE: We use meshes.vertices (default vertex position) to calculate meshes.animVertices (animated vertex position)
+                    animVertex = (Vector3){ model.meshes[m].vertices[vCounter], model.meshes[m].vertices[vCounter + 1], model.meshes[m].vertices[vCounter + 2] };
+                    animVertex = Vector3Multiply(animVertex, outScale);
+                    animVertex = Vector3Subtract(animVertex, inTranslation);
+                    animVertex = Vector3RotateByQuaternion(animVertex, QuaternionMultiply(outRotation, QuaternionInvert(inRotation)));
+                    animVertex = Vector3Add(animVertex, outTranslation);
+                    model.meshes[m].animVertices[vCounter]     += animVertex.x * boneWeight;
+                    model.meshes[m].animVertices[vCounter + 1] += animVertex.y * boneWeight;
+                    model.meshes[m].animVertices[vCounter + 2] += animVertex.z * boneWeight;
+
+                    // Normals processing
+                    // NOTE: We use meshes.baseNormals (default normal) to calculate meshes.normals (animated normals)
+                    if (model.meshes[m].normals != NULL)
+                    {
+                        animNormal = (Vector3){ model.meshes[m].normals[vCounter], model.meshes[m].normals[vCounter + 1], model.meshes[m].normals[vCounter + 2] };
+                        animNormal = Vector3RotateByQuaternion(animNormal, QuaternionMultiply(outRotation, QuaternionInvert(inRotation)));
+                        model.meshes[m].animNormals[vCounter]     += animNormal.x * boneWeight;
+                        model.meshes[m].animNormals[vCounter + 1] += animNormal.y * boneWeight;
+                        model.meshes[m].animNormals[vCounter + 2] += animNormal.z * boneWeight;
+                    }
+                    boneCounter += 1;
+                }
                 vCounter += 3;
-                boneCounter += 4;
             }
 
             // Upload new vertex data to GPU for model drawing
@@ -1501,25 +1522,6 @@ bool IsModelAnimationValid(Model model, ModelAnimation anim)
 }
 
 #if defined(SUPPORT_MESH_GENERATION)
-Mesh GenMeshDefault(int vertexCount)
-{
-    Mesh mesh = { 0 };
-
-    mesh.vertexCount = vertexCount;
-    mesh.triangleCount = vertexCount/3;
-
-    mesh.vertices = (float *)RL_CALLOC(mesh.vertexCount*3, sizeof(float));
-    mesh.texcoords = (float *)RL_CALLOC(mesh.vertexCount*2, sizeof(float));
-    mesh.normals = (float *)RL_CALLOC(mesh.vertexCount*3, sizeof(float));
-    mesh.colors = (unsigned char *)RL_CALLOC(mesh.vertexCount*4, sizeof(unsigned char));
-
-    // Upload vertex data to GPU (static mesh)
-    // NOTE: mesh.vboId array is allocated inside UploadMesh()
-    UploadMesh(&mesh, false);
-    
-    return mesh;
-}
-
 // Generate polygonal mesh
 Mesh GenMeshPoly(int sides, float radius)
 {
@@ -3168,7 +3170,11 @@ static Model LoadOBJ(const char *fileName)
         unsigned int dataSize = (unsigned int)strlen(fileData);
         char currentDir[1024] = { 0 };
         strcpy(currentDir, GetWorkingDirectory());
-        chdir(GetDirectoryPath(fileName));
+        const char *workingDir = GetDirectoryPath(fileName);
+        if (CHDIR(workingDir) != 0)
+        {
+            TRACELOG(LOG_WARNING, "MODEL: [%s] Failed to change working directory", workingDir);
+        }
 
         unsigned int flags = TINYOBJ_FLAG_TRIANGULATE;
         int ret = tinyobj_parse_obj(&attrib, &meshes, &meshCount, &materials, &materialCount, fileData, dataSize, flags);
@@ -3306,7 +3312,10 @@ static Model LoadOBJ(const char *fileName)
         RL_FREE(vnCount);
         RL_FREE(faceCount);
 
-        chdir(currentDir);
+        if (CHDIR(currentDir) != 0)
+        {
+            TRACELOG(LOG_WARNING, "MODEL: [%s] Failed to change working directory", currentDir);
+        }
     }
 
     return model;
